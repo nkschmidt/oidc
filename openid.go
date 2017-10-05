@@ -1507,8 +1507,14 @@ func (oID *OpenID) removeClient(tenant string, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	oID.storage.RemoveClient(tenant, client_id)
-	return
+	if err := oID.storage.RemoveClient(tenant, client_id); err != nil {
+		oID.sendJson(Error{Err: "internal_error", Desc: err.Error()}, w, 500)
+		return
+	}
+
+	oID.sendJson(map[string]interface{}{
+		"error": false,
+	}, w, 200)
 }
 
 func (oID *OpenID) getClients(tenant string, w http.ResponseWriter, r *http.Request) {
