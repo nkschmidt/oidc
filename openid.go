@@ -1053,7 +1053,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		oID.sendJson(data, w, 0)
+		oID.sendJson(data, w, 200)
 	} else {
 
 		// Получаем refresh
@@ -1132,7 +1132,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 			"expires_in":    access.Exp,
 		}
 
-		oID.sendJson(data, w, 0)
+		oID.sendJson(data, w, 200)
 
 	}
 
