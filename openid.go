@@ -1147,6 +1147,7 @@ func (oID OpenID) Jwks(tenant string, w http.ResponseWriter, r *http.Request) {
 
 func (oID *OpenID) Discovery(tenant string, w http.ResponseWriter, r *http.Request) {
 
+	oID.setCORS(w, r)
 	w.Header().Add("content-type", "application/json")
 	oID.send(w, oID.settings.toJSON(tenant))
 
