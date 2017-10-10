@@ -778,7 +778,7 @@ func (oID *OpenID) genIdTokenD(tenant string, clientInterface ClientInterface, a
 
 func (oID *OpenID) genToken(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim) (err error) {
 
-	if authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_1 || AUTH_RESPONSE_TYPE_MULTI_1 == AUTH_RESPONSE_TYPE_MULTI_3 || AUTH_RESPONSE_TYPE_MULTI_3 == AUTH_RESPONSE_TYPE_MULTI_4 {
+	if authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_1 || authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_3 || authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_4 {
 
 		client := clientInterface.GetBaseClient()
 
