@@ -562,38 +562,38 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 
 			// пробуем с подсказкой
 			if len(authRequest.Id_token_hint) == 0 {
-				err = Error{Err: "invalid_request", Desc: "Empty session and id_token_hint"}
+				oID.error(Error{Err: "invalid_request", Desc: "Empty session and id_token_hint"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			// Парсим id_token_hint
 			claim, err = oID.parseJWTToken(provider, client.Secret, authRequest.Id_token_hint)
 			if err != nil {
-				err = Error{Err: "login_required", Desc: "Empty session and id_token_hint"}
+				oID.error(Error{Err: "login_required", Desc: "Empty session and id_token_hint"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			aud, ok := claim["aud"].(string)
 			if !ok {
-				err = Error{Err: "login_required", Desc: "Empty session"}
+				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			if aud != authRequest.ClientId {
-				err = Error{Err: "login_required", Desc: "Empty session"}
+				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			//  Получаем аккаунт
 			sub, ok := claim["sub"].(string)
 			if !ok {
-				err = Error{Err: "login_required", Desc: "Empty session"}
+				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			current = oID.getAccount(sub, authRequest.ClientId, accounts)
 			if current == nil {
-				err = Error{Err: "login_required", Desc: "Empty session"}
+				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
@@ -601,7 +601,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 
 		sub, ok := (*current)["sub"].(string)
 		if !ok {
-			err = Error{Err: "login_required", Desc: "Empty session"}
+			oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
 			return
 		}
 
