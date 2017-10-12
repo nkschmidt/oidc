@@ -1322,7 +1322,15 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			}
 
 			curr.Expires = old
+			curr.MaxAge = -1
+			curr.Domain = u.Host
+			curr.Path = u.Path
+
 			c.Expires = old
+			c.MaxAge = -1
+			c.Domain = u.Host
+			c.Path = u.Path
+
 			http.SetCookie(w, curr)
 			http.SetCookie(w, c)
 		}
