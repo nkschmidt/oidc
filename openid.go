@@ -644,6 +644,10 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 			return
 		}
 
+		if user != nil {
+			authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface)
+		}
+
 	} else {
 		// Если передан логин и пароль, выполняем авторизацию
 		if len(login) > 0 && len(pwd) > 0 {
