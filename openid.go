@@ -361,8 +361,8 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 		int(client.Session_timeout),
 		false,
 		false,
-		session_name + token_string,
-		[]string{session_name + token_string},
+		session_name + "=" + token_string,
+		[]string{session_name + "=" + token_string},
 	}
 
 	state := &http.Cookie{
