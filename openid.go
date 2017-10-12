@@ -162,6 +162,26 @@ func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, no
 
 func (oID OpenID) readJWTToken(provider, tokenString string) (claims jwt.MapClaims, err error) {
 
+
+	arr := strings.Split(tokenString, ".")
+	if len(arr) != 3 {
+		return nil, fmt.Errorf("%v", "Invalid token")
+	}
+
+	b, err := jwt.DecodeSegment(arr[1])
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &claims)
+	if err != nil {
+		return nil, err
+	}
+
+	oID.log("readJWTToken", err, claims)
+
+	return
+	/*
 	var ok bool
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -170,7 +190,7 @@ func (oID OpenID) readJWTToken(provider, tokenString string) (claims jwt.MapClai
 		return nil, nil
 	})
 
-	oID.log("readJWTToken", err, token)
+
 
 	if token == nil {
 		return nil, fmt.Errorf("%v", "Invalid token")
@@ -181,7 +201,7 @@ func (oID OpenID) readJWTToken(provider, tokenString string) (claims jwt.MapClai
 	} else {
 		return nil, err
 	}
-
+*/
 }
 
 func (oID OpenID) parseJWTToken(provider, secret, tokenString string) (claims jwt.MapClaims, err error) {
