@@ -170,6 +170,8 @@ func (oID OpenID) readJWTToken(provider, tokenString string) (claims jwt.MapClai
 		return nil, nil
 	})
 
+	oID.log("readJWTToken", err, token)
+
 	if token == nil {
 		return nil, fmt.Errorf("%v", "Invalid token")
 	}
