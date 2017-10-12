@@ -261,13 +261,13 @@ func (a *AuthRequest) getPath() string {
 	case AUTH_RESPONSE_TYPE_ID_TOKEN:
 		return a.RedirectUri + delimetr + "id_token=" + a._id_token + state
 	case AUTH_RESPONSE_TYPE_MULTI_1:
-		return a.RedirectUri + delimetr + "code= " + a._code + "&token=" + a._access_token + state + ext_token
+		return a.RedirectUri + delimetr + "code=" + a._code + "&token=" + a._access_token + state + ext_token
 	case AUTH_RESPONSE_TYPE_MULTI_2:
 		return a.RedirectUri + delimetr + "code=" + a._code + "&token_type=Bearer&id_token=" + a._id_token + state
 	case AUTH_RESPONSE_TYPE_MULTI_3:
-		return a.RedirectUri + delimetr + "token_type=Bearer&id_token= " + a._id_token + "&token=" + a._access_token + state + ext_token
+		return a.RedirectUri + delimetr + "token_type=Bearer&id_token=" + a._id_token + "&token=" + a._access_token + state + ext_token
 	case AUTH_RESPONSE_TYPE_MULTI_4:
-		return a.RedirectUri + delimetr + "code=" + a._code + "&token_type=Bearer&id_token= " + a._id_token + "&token=" + a._access_token + state + ext_token
+		return a.RedirectUri + delimetr + "code=" + a._code + "&token_type=Bearer&id_token=" + a._id_token + "&token=" + a._access_token + state + ext_token
 	}
 
 	return ""

@@ -1365,7 +1365,7 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		oID.log("Logout endpoint: parse id_token with client secret")
+		oID.log("Logout endpoint: parse id_token with client secret", "tenant:", tenant, "secret:", client.Secret)
 		_, err = oID.parseJWTToken(tenant, client.Secret, logoutRequest.id_token_hint)
 		if err != nil {
 			oID.log("Logout endpoint: Error parse id_token with client secret")
