@@ -3,6 +3,7 @@ package OpenID
 import (
 	"net/url"
 	"strings"
+	"fmt"
 )
 
 /*
@@ -72,6 +73,7 @@ type AuthRequest struct {
 	_isPromptNone          bool
 	_isPromptConsent       bool
 	_isPromptSelectAccount bool
+	_expires_in                int64
 }
 
 func (a *AuthRequest) parse(values url.Values) {
@@ -253,7 +255,7 @@ func (a *AuthRequest) getPath() string {
 		state += "&state=" + a.State
 	}
 
-	ext_token := "&token_type=Bearer&expires_in=3600&scope=" + strings.Join(a.Scopes, " ")
+	ext_token := "&token_type=Bearer&expires_in=" + fmt.Sprint(a._expires_in) + "&scope=" + strings.Join(a.Scopes, " ")
 
 	switch a.ResponseType {
 	case AUTH_RESPONSE_TYPE_CODE:
@@ -294,7 +296,7 @@ func (a *AuthRequest) getForm() []byte {
 			<input type="hidden" name="code" value="` + a._code + `"/>
 			<input type="hidden" name="token" value="` + a._access_token + `"/>
 			<input type="hidden" name="token_type" value="Bearer"/>
-			<input type="hidden" name="expires_in" value="3600"/>
+			<input type="hidden" name="expires_in" value="` + fmt.Sprint(a._expires_in) + `"/>
 			<input type="hidden" name="scope" value="` + strings.Join(a.Scopes, " ") + `"/>
 		`
 		break
@@ -312,7 +314,7 @@ func (a *AuthRequest) getForm() []byte {
 			<input type="hidden" name="id_token" value="` + a._id_token + `"/>
 			<input type="hidden" name="token" value="` + a._access_token + `"/>
 			<input type="hidden" name="token_type" value="Bearer"/>
-			<input type="hidden" name="expires_in" value="3600"/>
+			<input type="hidden" name="expires_in" value="` + fmt.Sprint(a._expires_in) + `"/>
 			<input type="hidden" name="scope" value="` + strings.Join(a.Scopes, " ") + `"/>
 		`
 		break
@@ -323,7 +325,7 @@ func (a *AuthRequest) getForm() []byte {
 			<input type="hidden" name="id_token" value="` + a._id_token + `"/>
 			<input type="hidden" name="token" value="` + a._access_token + `"/>
 			<input type="hidden" name="token_type" value="Bearer"/>
-			<input type="hidden" name="expires_in" value="3600"/>
+			<input type="hidden" name="expires_in" value="` + fmt.Sprint(a._expires_in) + `"/>
 			<input type="hidden" name="scope" value="` + strings.Join(a.Scopes, " ") + `"/>
 		`
 		break

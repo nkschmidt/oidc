@@ -4,8 +4,8 @@ import (
 	"github.com/NikSmith/oidc"
 	"github.com/gorilla/mux"
 	"html/template"
-	"net/http"
 	"log"
+	"net/http"
 	"os"
 )
 

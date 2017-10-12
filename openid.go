@@ -68,7 +68,7 @@ func New() *OpenID {
 	}
 }
 
-func (oID OpenID) log(args... interface{}) {
+func (oID OpenID) log(args ...interface{}) {
 	if oID.logger != nil {
 		oID.logger.Println(args...)
 	}
@@ -162,7 +162,6 @@ func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, no
 
 func (oID OpenID) readJWTToken(tokenString string) (claims jwt.MapClaims, err error) {
 
-
 	arr := strings.Split(tokenString, ".")
 	if len(arr) != 3 {
 		return nil, fmt.Errorf("%v", "Invalid token")
@@ -182,26 +181,26 @@ func (oID OpenID) readJWTToken(tokenString string) (claims jwt.MapClaims, err er
 
 	return
 	/*
-	var ok bool
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		var ok bool
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+			return nil, nil
+		})
+
+
+
+		if token == nil {
+			return nil, fmt.Errorf("%v", "Invalid token")
 		}
-		return nil, nil
-	})
 
-
-
-	if token == nil {
-		return nil, fmt.Errorf("%v", "Invalid token")
-	}
-
-	if claims, ok = token.Claims.(jwt.MapClaims); ok {
-		return claims, nil
-	} else {
-		return nil, err
-	}
-*/
+		if claims, ok = token.Claims.(jwt.MapClaims); ok {
+			return claims, nil
+		} else {
+			return nil, err
+		}
+	*/
 }
 
 func (oID OpenID) parseJWTToken(provider, secret, tokenString string) (claims jwt.MapClaims, err error) {
@@ -831,6 +830,7 @@ func (oID *OpenID) genToken(tenant string, clientInterface ClientInterface, auth
 		}
 
 		authRequest._access_token = access.Id
+		authRequest._expires_in = access.Exp
 	}
 	return
 }
@@ -1328,26 +1328,26 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 		// читаем токен
 		res, err := oID.readJWTToken(logoutRequest.id_token_hint)
 		if err != nil {
-			oID.log("Logout endpoint: err read id_token_hint", err, "id_token:",logoutRequest.id_token_hint)
+			oID.log("Logout endpoint: err read id_token_hint", err, "id_token:", logoutRequest.id_token_hint)
 			oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 			return
 		}
 
-		oID.log("Logout endpoint: read aud from id_token_hint",res["aud"])
+		oID.log("Logout endpoint: read aud from id_token_hint", res["aud"])
 		aud, ok := res["aud"].(string)
 		if !ok {
 			oID.error(Error{Err: "invalid_request", Desc: "Invalid claim aud"}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 			return
 		}
 
-		oID.log("Logout endpoint: read sub from id_token_hint",res["sub"])
+		oID.log("Logout endpoint: read sub from id_token_hint", res["sub"])
 		sub, ok := res["sub"].(string)
 		if !ok {
 			oID.error(Error{Err: "invalid_request", Desc: "Invalid claim subject"}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 			return
 		}
 
-		oID.log("Logout endpoint: get client by id",tenant, aud)
+		oID.log("Logout endpoint: get client by id", tenant, aud)
 		clientInterface, err := oID.storage.GetClientById(tenant, aud)
 		if err != nil {
 			oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
