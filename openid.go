@@ -1306,7 +1306,7 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 		// читаем токен
 		res, err := oID.readJWTToken(tenant, logoutRequest.id_token_hint)
 		if err != nil {
-			oID.log("Logout endpoint: err read id_token_hint", err)
+			oID.log("Logout endpoint: err read id_token_hint", err, "id_token:",logoutRequest.id_token_hint)
 			oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 			return
 		}
