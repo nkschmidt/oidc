@@ -1420,9 +1420,9 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			oID.log("Logout endpoint: Check current session", currSessName, cookie.Name)
 			if currSessName == cookie.Name {
 				c.Expires = old
-				cookie.MaxAge = -1
-				cookie.Domain = u.Host
-				cookie.Path = u.Path
+				c.MaxAge = -1
+				c.Domain = u.Host
+				c.Path = u.Path
 				http.SetCookie(w, c)
 			}
 
