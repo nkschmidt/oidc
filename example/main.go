@@ -5,13 +5,18 @@ import (
 	"github.com/gorilla/mux"
 	"html/template"
 	"net/http"
+	"log"
+	"os"
 )
 
 func main() {
 
+	l := log.New(os.Stdout, "", 1)
+
 	openid := OpenID.New()
 	store := Storage{}
 	openid.AddStorage(store)
+	openid.SetLogger(l)
 
 	tpl, err := template.New("template.html").ParseFiles("template.html")
 	if err != nil {

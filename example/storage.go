@@ -6,7 +6,6 @@ import (
 	"github.com/NikSmith/oidc"
 )
 
-
 type Storage struct{}
 
 var codes map[string]*OpenID.Code = map[string]*OpenID.Code{}
@@ -98,32 +97,30 @@ func (p Storage) AuthUser(provider, login, pwd string) (user *OpenID.BaseClaim, 
 
 func (p Storage) GetClientById(provider, id string) (client OpenID.ClientInterface, err error) {
 
-
 	custom := CustomClient{
-		Id:"s6BhdRkqt3",
+		Id: "s6BhdRkqt3",
 		BaseClient: &OpenID.BaseClient{
-			Redirect_uris: []string{"http://localhost:8080"},
+			Redirect_uris:             []string{"http://localhost:8080"},
 			Post_logout_redirect_uris: []string{"http://localhost:8080"},
-			Application_type: "native",
-			Response_types: []string{},
+			Application_type:          "native",
+			Response_types:            []string{},
 			Scopes: []*OpenID.ClientScope{
 				&OpenID.ClientScope{
-					Name: "roles",
-					Desc: "Роли пользователя",
+					Name:   "roles",
+					Desc:   "Роли пользователя",
 					Fields: []string{"roles"},
 				},
 				&OpenID.ClientScope{
-					Name: "profile",
-					Desc: "Профиль пользователя",
+					Name:   "profile",
+					Desc:   "Профиль пользователя",
 					Fields: []string{"address"},
 				},
 			},
-			Secret: "password123",
-			Token_timeout: 1000,
+			Secret:           "password123",
+			Token_timeout:    1000,
 			Id_token_timeout: 1000,
-			Refresh_timeout: 1000,
-			Session_timeout: 1000,
-
+			Refresh_timeout:  1000,
+			Session_timeout:  1000,
 		},
 	}
 
@@ -161,30 +158,29 @@ func (p Storage) GetClients(provider string) (clients []OpenID.ClientInterface, 
 
 	fmt.Println("Get clients", provider)
 	custom := CustomClient{
-		Id:"s6BhdRkqt3",
+		Id: "s6BhdRkqt3",
 		BaseClient: &OpenID.BaseClient{
-			Redirect_uris: []string{"http://localhost:8080"},
+			Redirect_uris:             []string{"http://localhost:8080"},
 			Post_logout_redirect_uris: []string{"http://localhost:8080"},
-			Application_type: "native",
-			Response_types: []string{},
+			Application_type:          "native",
+			Response_types:            []string{},
 			Scopes: []*OpenID.ClientScope{
 				&OpenID.ClientScope{
-					Name: "roles",
-					Desc: "Роли пользователя",
+					Name:   "roles",
+					Desc:   "Роли пользователя",
 					Fields: []string{"roles"},
 				},
 				&OpenID.ClientScope{
-					Name: "profile",
-					Desc: "Профиль пользователя",
+					Name:   "profile",
+					Desc:   "Профиль пользователя",
 					Fields: []string{"address"},
 				},
 			},
-			Secret: "password123",
-			Token_timeout: 1000,
+			Secret:           "password123",
+			Token_timeout:    1000,
 			Id_token_timeout: 1000,
-			Refresh_timeout: 1000,
-			Session_timeout: 1000,
-
+			Refresh_timeout:  1000,
+			Session_timeout:  1000,
 		},
 	}
 
