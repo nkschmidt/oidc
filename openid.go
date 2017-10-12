@@ -1421,6 +1421,7 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			}
 
 			cookie.Expires = old
+			cookie.MaxAge = -1
 			http.SetCookie(w, cookie)
 		}
 
