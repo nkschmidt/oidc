@@ -1232,6 +1232,9 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 	oID.setCORS(w, r)
 	var query url.Values
 
+	path := oID.getIssuer(tenant)
+	u, _ := url.Parse(path)
+
 	oID.log("Logout endpoint")
 
 	old := time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -1418,11 +1421,15 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			if currSessName == cookie.Name {
 				c.Expires = old
 				cookie.MaxAge = -1
+				cookie.Domain = u.Host
+				cookie.Path = u.Path
 				http.SetCookie(w, c)
 			}
 
 			cookie.Expires = old
 			cookie.MaxAge = -1
+			cookie.Domain = u.Host
+			cookie.Path = u.Path
 			http.SetCookie(w, cookie)
 		}
 
