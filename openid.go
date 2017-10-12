@@ -7,6 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -38,6 +39,7 @@ type OpenID struct {
 	confirmTpl  *template.Template
 	publicKeys  []*Keys
 	privateKeys []*Keys
+	logger      *log.Logger
 }
 
 func New() *OpenID {
@@ -64,6 +66,16 @@ func New() *OpenID {
 			Response_modes_supported:              []string{"query", "fragment", "form_post"},
 		},
 	}
+}
+
+func (oID OpenID) log(args... interface{}) {
+	if oID.logger != nil {
+		oID.logger.Println(args...)
+	}
+}
+
+func (oID *OpenID) SetLogger(l *log.Logger) {
+	oID.logger = l
 }
 
 func (oID *OpenID) send(w http.ResponseWriter, data []byte) {
@@ -1198,6 +1210,8 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 	oID.setCORS(w, r)
 	var query url.Values
 
+	oID.log("Logout endpoint")
+
 	old := time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	isPostMethod := http.MethodPost == r.Method
@@ -1205,14 +1219,17 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 	logoutRequest := new(LogoutRequest)
 
 	if isPostMethod {
+		oID.log("Logout endpoint: parse post form")
 		err := r.ParseForm()
 		if err != nil {
+			oID.log("Logout endpoint: error parse post form", err)
 			oID.error(Error{Err: "invalid_request", Desc: err.Error()}, "", "", w, r)
 			return
 		}
 
 		query = r.PostForm
 	} else {
+		oID.log("Logout endpoint: parse query")
 		query = r.URL.Query()
 	}
 
@@ -1227,12 +1244,18 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 		curr, _ = r.Cookie(currSessName)
 	}
 
+	oID.log("Logout endpoint: current session", currSessName, curr.Value)
+
 	if !logoutRequest.isExistIdToken {
+
+		oID.log("Logout endpoint: without id_token_hint flow")
+
 		if curr != nil {
 
 			// Читаем куку
 			claim, err := oID.readJWTToken(tenant, curr.Value)
 			if err != nil {
+				oID.log("Logout endpoint: error read session as jwt", err)
 				oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 				return
 			}
@@ -1242,6 +1265,7 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 				oID.error(Error{Err: "invalid_request", Desc: "Invalid claim aud"}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 				return
 			}
+
 			clientInterface, err := oID.storage.GetClientById(tenant, aud)
 			if err != nil {
 				oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
@@ -1278,9 +1302,11 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 			http.SetCookie(w, c)
 		}
 	} else {
+		oID.log("Logout endpoint: with id_token_hint flow", logoutRequest.id_token_hint)
 		// читаем токен
 		res, err := oID.readJWTToken(tenant, logoutRequest.id_token_hint)
 		if err != nil {
+			oID.log("Logout endpoint: err read id_token_hint", err)
 			oID.error(Error{Err: "invalid_request", Desc: err.Error()}, logoutRequest.post_logout_redirect_uri, logoutRequest.state, w, r)
 			return
 		}
@@ -1396,7 +1422,6 @@ func (oID *OpenID) Registration(tenant string, w http.ResponseWriter, r *http.Re
 		}
 	}
 
-
 	switch r.Method {
 	case http.MethodDelete:
 		oID.removeClient(tenant, w, r)
@@ -1465,8 +1490,8 @@ func (oID *OpenID) updateClient(tenant string, w http.ResponseWriter, r *http.Re
 	}
 
 	client := BaseClient{
-		Contacts: make([]string,0),
-		Scopes: make([]*ClientScope, 0),
+		Contacts: make([]string, 0),
+		Scopes:   make([]*ClientScope, 0),
 	}
 	err = json.Unmarshal(data, &client)
 	if err != nil {
@@ -1555,8 +1580,8 @@ func (oID *OpenID) createClient(tenant string, w http.ResponseWriter, r *http.Re
 	}
 
 	client := BaseClient{
-		Contacts: make([]string,0),
-		Scopes: make([]*ClientScope, 0),
+		Contacts: make([]string, 0),
+		Scopes:   make([]*ClientScope, 0),
 	}
 	err = json.Unmarshal(data, &client)
 	if err != nil {
