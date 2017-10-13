@@ -251,17 +251,6 @@ func (oID *OpenID) error(err error, uri, state string, w http.ResponseWriter, r 
 
 }
 
-func (oID OpenID) setCORS(w http.ResponseWriter, r *http.Request) {
-
-	/*allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization,X-CSRF-Token"
-	if origin := r.Header.Get("Origin"); origin != "" {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
-		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
-	}*/
-}
-
 func (oID OpenID) getAccount(user_id, client_id string, accounts []*jwt.MapClaims) *jwt.MapClaims {
 
 	var sub, aud string
@@ -881,8 +870,6 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 
 	token := ""
 
-	oID.setCORS(w, r)
-
 	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
@@ -964,8 +951,6 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 }
 
 func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request) {
-
-	oID.setCORS(w, r)
 
 	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 	w.Header().Set("Cache-Control", "no-store")
@@ -1230,7 +1215,6 @@ func (oID OpenID) Jwks(tenant string, w http.ResponseWriter, r *http.Request) {
 
 func (oID *OpenID) Discovery(tenant string, w http.ResponseWriter, r *http.Request) {
 
-	oID.setCORS(w, r)
 	w.Header().Add("content-type", "application/json")
 	oID.send(w, oID.settings.toJSON(tenant))
 
@@ -1278,7 +1262,7 @@ func (oID *OpenID) Discovery(tenant string, w http.ResponseWriter, r *http.Reque
 }
 
 func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request) {
-	oID.setCORS(w, r)
+
 	var query url.Values
 
 	path := oID.getIssuer(tenant)
