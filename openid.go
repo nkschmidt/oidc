@@ -253,13 +253,13 @@ func (oID *OpenID) error(err error, uri, state string, w http.ResponseWriter, r 
 
 func (oID OpenID) setCORS(w http.ResponseWriter, r *http.Request) {
 
-	allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization,X-CSRF-Token"
+	/*allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization,X-CSRF-Token"
 	if origin := r.Header.Get("Origin"); origin != "" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
 		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
-	}
+	}*/
 }
 
 func (oID OpenID) getAccount(user_id, client_id string, accounts []*jwt.MapClaims) *jwt.MapClaims {
