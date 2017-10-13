@@ -82,7 +82,7 @@ func (oID *OpenID) send(w http.ResponseWriter, data []byte) {
 	w.Write(data)
 }
 
-func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, nonce string, scopes []string, user *BaseClaim) (token string, err error) {
+func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, nonce string, scopes []string, user *BaseClaim, timeout uint64) (token string, err error) {
 
 	/*
 
@@ -106,7 +106,7 @@ func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, no
 	client := clientInterface.GetBaseClient()
 
 	now := time.Now()
-	duration := time.Duration(client.Id_token_timeout) * time.Second
+	duration := time.Duration(timeout) * time.Second
 
 	claim := jwt.MapClaims{}
 
@@ -299,7 +299,42 @@ func (oID *OpenID) getAccountBySession(session string, accounts []*jwt.MapClaims
 	return nil
 }
 
-func (oID *OpenID) getAccounts(provider, client_id, client_secret string, r *http.Request) (current *jwt.MapClaims, accounts []*jwt.MapClaims) {
+func (oID *OpenID) getAccountsNew(tenant, iss, client_secret string, r *http.Request) (current *jwt.MapClaims, accounts []*jwt.MapClaims) {
+
+	// читаем id текущего
+	c, _ := r.Cookie("session")
+
+	// Читаем все куки, выбираем список аккаунтов и текущий
+	cookies := r.Cookies()
+
+	for _, cookie := range cookies {
+
+		if len(cookie.Name) <= 8 {
+			continue
+		}
+
+		if cookie.Name[:8] != "session_" {
+			continue
+		}
+
+		claim, err := oID.parseJWTToken(tenant, client_secret, cookie.Value)
+		if err != nil {
+			continue
+		}
+
+		if c != nil && c.Value == cookie.Name {
+			current = &claim
+		}
+
+		claim["session"] = cookie.Name
+
+		accounts = append(accounts, &claim)
+	}
+
+	return
+}
+
+/*func (oID *OpenID) getAccounts(provider, client_id, client_secret string, r *http.Request) (current *jwt.MapClaims, accounts []*jwt.MapClaims) {
 
 	// читаем id текущего
 	c, _ := r.Cookie("session")
@@ -336,13 +371,13 @@ func (oID *OpenID) getAccounts(provider, client_id, client_secret string, r *htt
 	}
 
 	return
-}
+}*/
 
 func (oID *OpenID) SetIssue(i string) {
 	oID.settings.Issuer = i
 }
 
-func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseClaim, path string, clientInterface ClientInterface) (session_state string) {
+func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseClaim, path string, clientInterface ClientInterface, timeout uint64) (session_state string) {
 
 	client := clientInterface.GetBaseClient()
 	if client == nil {
@@ -352,7 +387,7 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 
 	u, _ := url.Parse(path)
 
-	expireAt := now.Add(time.Duration(client.Session_timeout) * time.Second)
+	expireAt := now.Add(time.Duration(timeout) * time.Second)
 
 	claims := jwt.MapClaims{
 		"aud":     clientInterface.GetId(),
@@ -370,7 +405,7 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 		return
 	}
 
-	session_name := "session_" + genCode(10)
+	session_name := "session_" + claim.Sub
 
 	cookie := &http.Cookie{
 		session_name,
@@ -379,7 +414,7 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 		u.Host,
 		expireAt,
 		expireAt.Format(time.UnixDate),
-		int(client.Session_timeout),
+		int(timeout),
 		false,
 		false,
 		session_name + "=" + token_string,
@@ -393,7 +428,7 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 		u.Host,
 		expireAt,
 		expireAt.Format(time.UnixDate),
-		int(client.Session_timeout),
+		int(timeout),
 		false,
 		false,
 		"session=" + token_string,
@@ -533,6 +568,8 @@ func (oID OpenID) CheckSession(tenant string, w http.ResponseWriter, r *http.Req
 
 func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Request) (err error) {
 
+	oID.log("Authorization endpoint")
+
 	var clientInterface ClientInterface
 	var client *BaseClient
 	var user *BaseClaim
@@ -586,41 +623,44 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Получаем таймауты
+	tokenSet, err := oID.storage.GetTimeoutSet(provider)
+	if err != nil {
+		oID.error(Error{Err: "server_error", Desc: err.Error()}, authRequest.RedirectUri, authRequest.State, w, r)
+		return
+	}
+
 	if authRequest._isPromptNone {
 
+		oID.log("Authorization endpoint: isPromptNone flow")
+
 		// Получаем список всех аккаунтов
-		current, accounts := oID.getAccounts(provider, authRequest.ClientId, client.Secret, r)
+		current, accounts := oID.getAccountsNew(provider, oID.getIssuer(provider), client.Secret, r)
+		oID.log("Authorization endpoint: Get accounts, CURRENT:", current, "Accounts:", accounts)
 
 		if current == nil {
-
+			oID.log("Authorization endpoint: Current account is nil")
 			// пробуем с подсказкой
 			if len(authRequest.Id_token_hint) == 0 {
-				oID.error(Error{Err: "invalid_request", Desc: "Empty session and id_token_hint"}, authRequest.RedirectUri, authRequest.State, w, r)
+				oID.log("Id_token_hint and current session is empty")
+				oID.error(Error{Err: "invalid_request", Desc: "Id_token_hint and current session is empty"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
+			oID.log("Authorization endpoint: Parse id_token_hint")
 			// Парсим id_token_hint
 			claim, err = oID.parseJWTToken(provider, client.Secret, authRequest.Id_token_hint)
 			if err != nil {
-				oID.error(Error{Err: "login_required", Desc: "Empty session and id_token_hint"}, authRequest.RedirectUri, authRequest.State, w, r)
-				return
-			}
-
-			aud, ok := claim["aud"].(string)
-			if !ok {
-				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
-				return
-			}
-
-			if aud != authRequest.ClientId {
-				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
+				oID.log("Authorization endpoint: Id_token_hint is invalid", err)
+				oID.error(Error{Err: "login_required", Desc: "Id_token_hint is invalid"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
 			//  Получаем аккаунт
 			sub, ok := claim["sub"].(string)
 			if !ok {
-				oID.error(Error{Err: "login_required", Desc: "Empty session"}, authRequest.RedirectUri, authRequest.State, w, r)
+				oID.log("Authorization endpoint: Invalid Subject in Id_token_hint")
+				oID.error(Error{Err: "login_required", Desc: "Invalid Subject in Id_token_hint"}, authRequest.RedirectUri, authRequest.State, w, r)
 				return
 			}
 
@@ -645,7 +685,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 		}
 
 		if user != nil {
-			authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface)
+			authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface, tokenSet.Session_timeout)
 		}
 
 	} else {
@@ -659,7 +699,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 			}
 
 			if user != nil {
-				authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface)
+				authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface, tokenSet.Session_timeout)
 			}
 
 		} else {
@@ -675,7 +715,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 
 			// Необходимо выбрать аккаунт, если не передан
 			if authRequest._isPromptSelectAccount {
-				_, accounts := oID.getAccounts(provider, authRequest.ClientId, client.Secret, r)
+				_, accounts := oID.getAccountsNew(provider, oID.getIssuer(provider), client.Secret, r)
 				if len(accounts) == 0 {
 					// Выводим форму для ввода пароля
 					oID.tpl.Execute(w, map[string]interface{}{
@@ -715,7 +755,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 				}
 
 				if user != nil {
-					authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface)
+					authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface, tokenSet.Session_timeout)
 				}
 
 			}
@@ -760,12 +800,12 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 	}
 
 	// Генерируем id_token
-	if err = oID.genIdTokenD(provider, clientInterface, authRequest, user); err != nil {
+	if err = oID.genIdTokenD(provider, clientInterface, authRequest, user, tokenSet.Id_token_timeout); err != nil {
 		oID.error(Error{Err: "server_error", Desc: err.Error()}, authRequest.RedirectUri, authRequest.State, w, r)
 		return
 	}
 
-	if err = oID.genToken(provider, clientInterface, authRequest, user); err != nil {
+	if err = oID.genToken(provider, clientInterface, authRequest, user, tokenSet.Token_timeout); err != nil {
 		oID.error(Error{Err: "server_error", Desc: err.Error()}, authRequest.RedirectUri, authRequest.State, w, r)
 		return
 	}
@@ -806,24 +846,22 @@ func (oID OpenID) genAuthCode(tenant string, clientInterface ClientInterface, au
 	return
 }
 
-func (oID *OpenID) genIdTokenD(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim) (err error) {
+func (oID *OpenID) genIdTokenD(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim,timeout uint64) (err error) {
 	if authRequest.ResponseType != AUTH_RESPONSE_TYPE_CODE && authRequest.ResponseType != AUTH_RESPONSE_TYPE_MULTI_1 {
-		authRequest._id_token, err = oID.genIdToken(tenant, clientInterface, authRequest.Nonce, authRequest.Scopes, user)
+		authRequest._id_token, err = oID.genIdToken(tenant, clientInterface, authRequest.Nonce, authRequest.Scopes, user, timeout)
 	}
 	return
 }
 
-func (oID *OpenID) genToken(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim) (err error) {
+func (oID *OpenID) genToken(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim, timeout uint64) (err error) {
 
 	if authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_1 || authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_3 || authRequest.ResponseType == AUTH_RESPONSE_TYPE_MULTI_4 {
-
-		client := clientInterface.GetBaseClient()
 
 		access := AccessToken{
 			Id:     genCode(24),
 			Aud:    clientInterface.GetId(),
 			Sub:    user.Sub,
-			Exp:    time.Now().Add(time.Duration(client.Token_timeout) * time.Second).Unix(),
+			Exp:    time.Now().Add(time.Duration(timeout) * time.Second).Unix(),
 			Iss:    oID.getIssuer(tenant),
 			Scopes: authRequest.Scopes,
 		}
@@ -985,6 +1023,13 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Получаем таймауты
+	tokenSet, err := oID.storage.GetTimeoutSet(provider)
+	if err != nil {
+		oID.error(Error{Err: "server_error", Desc: err.Error()}, "", "", w, r)
+		return
+	}
+
 	// Запрос токенов
 	if tokenRequest.grant_type == GRANT_TYPE_AUTH_CODE {
 
@@ -1021,7 +1066,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 
 		data := map[string]interface{}{
 			"token_type": "Bearer",
-			"expires_in": client.Token_timeout,
+			"expires_in": tokenSet.Token_timeout,
 		}
 
 		// Генерируем access_token
@@ -1029,7 +1074,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 			Id:     genCode(32),
 			Aud:    clientInterface.GetId(),
 			Sub:    code.Subject,
-			Exp:    time.Now().Add(time.Duration(client.Token_timeout) * time.Second).Unix(),
+			Exp:    time.Now().Add(time.Duration(tokenSet.Token_timeout) * time.Second).Unix(),
 			Iss:    oID.getIssuer(provider),
 			Scopes: code.Scopes,
 		}
@@ -1055,7 +1100,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 		}
 
 		// Генерируем id_token
-		data["id_token"], err = oID.genIdToken(provider, clientInterface, "", code.Scopes, user)
+		data["id_token"], err = oID.genIdToken(provider, clientInterface, "", code.Scopes, user, tokenSet.Id_token_timeout)
 		if err != nil {
 			oID.error(Error{Err: "server_error", Desc: err.Error()}, tokenRequest.redirect_uri, "", w, r)
 			return
@@ -1068,7 +1113,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 				token := RefreshToken{
 					Id:          genCode(32),
 					AccessToken: access.Id,
-					Expire:      time.Now().Add(time.Duration(client.Refresh_timeout) * time.Second).Unix(),
+					Expire:      time.Now().Add(time.Duration(tokenSet.Refresh_timeout) * time.Second).Unix(),
 					ClientId:    clientInterface.GetId(),
 					Subject:     code.Subject,
 					Scopes:      code.Scopes,
@@ -1136,7 +1181,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 			Id:     genCode(32),
 			Aud:    clientInterface.GetId(),
 			Sub:    refresh_token.Subject,
-			Exp:    time.Now().Add(time.Duration(client.Token_timeout) * time.Second).Unix(),
+			Exp:    time.Now().Add(time.Duration(tokenSet.Token_timeout) * time.Second).Unix(),
 			Iss:    oID.getIssuer(provider),
 			Scopes: refresh_token.Scopes,
 		}
@@ -1151,7 +1196,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 		token := RefreshToken{
 			Id:          genCode(32),
 			AccessToken: access.Id,
-			Expire:      time.Now().Add(time.Duration(client.Refresh_timeout) * time.Second).Unix(),
+			Expire:      time.Now().Add(time.Duration(tokenSet.Refresh_timeout) * time.Second).Unix(),
 			ClientId:    clientInterface.GetId(),
 			Subject:     refresh_token.Subject,
 			Scopes:      refresh_token.Scopes,
@@ -1408,22 +1453,12 @@ func (oID *OpenID) Logout(tenant string, w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			oID.log("Logout endpoint: Read cookie aud", res["aud"])
-			client_id, ok := res["aud"]
-			if !ok {
-				continue
-			}
-
 			oID.log("Logout endpoint: Read cookie sub", res["sub"])
 			user_id, ok := res["sub"]
 			if !ok {
 				continue
 			}
 
-			oID.log("Logout endpoint: Compare client_id and cookie aud", client_id, aud)
-			if client_id != aud {
-				continue
-			}
 			oID.log("Logout endpoint: Compare client_id and cookie aud", user_id, sub)
 			if sub != user_id {
 				continue

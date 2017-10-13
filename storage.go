@@ -1,6 +1,8 @@
 package OpenID
 
 type Storage interface {
+	GetTimeoutSet(string) (*TimeoutSet, error)
+
 	GetGlobalAccessToken(tenant string) (token string, err error)
 
 	GetClientById(tenant, id string) (client ClientInterface, err error)

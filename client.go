@@ -6,7 +6,12 @@ import (
 	"net/url"
 )
 
-const TOKEN_TIMEOUT_DEFAULT = 600
+type TimeoutSet struct {
+	Token_timeout    uint64 `json:"token_timeout"`
+	Id_token_timeout uint64 `json:"id_token_timeout"`
+	Refresh_timeout  uint64 `json:"refresh_timeout"`
+	Session_timeout  uint64 `json:"session_timeout"`
+}
 
 type ClientScope struct {
 	Name   string   `json:"name"`
@@ -23,10 +28,6 @@ type BaseClient struct {
 	Post_logout_redirect_uris []string       `json:"post_logout_redirect_uris"`
 	Client_secret_expires_at  uint64         `json:"client_secret_expires_at"`
 
-	Token_timeout    uint64 `json:"token_timeout"`
-	Id_token_timeout uint64 `json:"id_token_timeout"`
-	Refresh_timeout  uint64 `json:"refresh_timeout"`
-	Session_timeout  uint64 `json:"session_timeout"`
 
 	Client_name string   `json:"client_name"`
 	Contacts    []string `json:"contacts"`
@@ -170,25 +171,6 @@ func (b *BaseClient) validate() error {
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	/* Валидация токенов */
-	{
-		if b.Token_timeout == 0 {
-			b.Token_timeout = TOKEN_TIMEOUT_DEFAULT
-		}
-
-		if b.Id_token_timeout == 0 {
-			b.Id_token_timeout = TOKEN_TIMEOUT_DEFAULT
-		}
-
-		if b.Refresh_timeout == 0 {
-			b.Refresh_timeout = TOKEN_TIMEOUT_DEFAULT
-		}
-
-		if b.Session_timeout == 0 {
-			b.Session_timeout = TOKEN_TIMEOUT_DEFAULT
 		}
 	}
 
