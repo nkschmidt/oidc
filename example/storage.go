@@ -12,6 +12,16 @@ var codes map[string]*OpenID.Code = map[string]*OpenID.Code{}
 var _refresh map[string]*OpenID.RefreshToken = map[string]*OpenID.RefreshToken{}
 var _access map[string]*OpenID.AccessToken = map[string]*OpenID.AccessToken{}
 
+
+func (p Storage) GetTimeoutSet(tenant string) (tokenSet *OpenID.TimeoutSet, err error) {
+	tokenSet = new(OpenID.TimeoutSet)
+	tokenSet.Id_token_timeout = 1000
+	tokenSet.Token_timeout = 1000
+	tokenSet.Session_timeout = 1000
+	tokenSet.Refresh_timeout = 1000
+	return
+}
+
 func (p Storage) GetGlobalAccessToken(tenant string) (token string, err error) {
 	token = "secret_token"
 	return
@@ -117,10 +127,6 @@ func (p Storage) GetClientById(provider, id string) (client OpenID.ClientInterfa
 				},
 			},
 			Secret:           "password123",
-			Token_timeout:    1000,
-			Id_token_timeout: 1000,
-			Refresh_timeout:  1000,
-			Session_timeout:  1000,
 		},
 	}
 
@@ -177,10 +183,6 @@ func (p Storage) GetClients(provider string) (clients []OpenID.ClientInterface, 
 				},
 			},
 			Secret:           "password123",
-			Token_timeout:    1000,
-			Id_token_timeout: 1000,
-			Refresh_timeout:  1000,
-			Session_timeout:  1000,
 		},
 	}
 
