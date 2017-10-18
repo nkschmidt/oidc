@@ -687,9 +687,12 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 				return
 			}
 
-			if user != nil {
-				authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface, tokenSet.Session_timeout)
+			if user == nil {
+				oID.error(Error{Err: "access_denied", Desc: "access_denied"}, authRequest.RedirectUri, authRequest.State, w, r)
+				return
 			}
+
+			authRequest._session_state = oID.setSession(provider, w, user, oID.getIssuer(provider), clientInterface, tokenSet.Session_timeout)
 
 		} else {
 
