@@ -1,6 +1,9 @@
 package OpenID
 
-import "strings"
+import (
+	"strings"
+	"net/url"
+)
 
 func genCode(n int) string {
 	b := make([]byte, n)
@@ -17,4 +20,21 @@ func genCode(n int) string {
 	}
 
 	return strings.ToLower(string(b))
+}
+
+func urlDecode(str string) (string, error) {
+	str, err := url.QueryUnescape(str)
+	if err != nil {
+		return "", err
+	}
+	
+	return str, nil
+}
+
+func urlEncode(str string) (string, error) {
+	u, err := url.Parse(str)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
 }
