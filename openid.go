@@ -115,9 +115,17 @@ func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, no
 			continue
 		}
 
+		if el == "profile" || el == "email" || el == "phone" {
+			claim[el] = user.Get(el, []string{})
+			continue
+		}
+
 		for _, scope := range client.Scopes {
 			if scope.Name == el {
-				claim[el] = user.Get(scope.Name, scope.Fields)
+				data := user.Get(scope.Name, scope.Fields)
+				if data != nil {
+					claim[el] = data
+				}	
 				continue
 			}
 		}
@@ -938,6 +946,11 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 
 	for _, el := range access_token.Scopes {
 		if el == "openid" || el == "offline_access" {
+			continue
+		}
+
+		if el == "profile" || el == "email" || el == "phone" {
+			result[el] = user.Get(el, []string{})
 			continue
 		}
 		
