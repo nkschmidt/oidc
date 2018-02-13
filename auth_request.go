@@ -78,7 +78,8 @@ type AuthRequest struct {
 
 func (a *AuthRequest) parse(values url.Values) {
 
-	scopes := strings.Split(values.Get("scope"), " ")
+	scopeSafe, _ := urlDecode(values.Get("scope"))
+	scopes := strings.Split(scopeSafe, " ")
 	for _, scope := range scopes {
 		if len(scope) > 0 {
 			a.Scopes = append(a.Scopes, scope)
@@ -209,7 +210,7 @@ func (a *AuthRequest) validate(client *BaseClient) (err error) {
 	}
 
 	if a._flow != AUTHORIZATION_CODE_FLOW && a.Response_mode == RESPONSE_TYPE_QUERY {
-		err = Error{Err: "invalid_request", Desc: "invalid_response_mode123"}
+		err = Error{Err: "invalid_request", Desc: "invalid_response_mode"}
 		return
 	}
 
