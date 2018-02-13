@@ -941,11 +941,6 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 			continue
 		}
 		
-		if el == "profile" {
-			result[""]
-			continue
-		}
-
 		for _, scope := range client.Scopes {
 			if scope.Name == el {
 				data := user.Get(scope.Name, scope.Fields)
