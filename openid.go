@@ -825,6 +825,7 @@ func (oID OpenID) genAuthCode(tenant string, clientInterface ClientInterface, au
 			Subject:      user.Sub,
 			ExpireAt:     time.Now().Add(10 * time.Minute).Unix(),
 			Scopes:       authRequest.Scopes,
+			Nonce:	      authRequest.Nonce,
 		}
 
 		// Ассоциируем для кода access_token
@@ -1088,7 +1089,7 @@ func (oID *OpenID) Token(provider string, w http.ResponseWriter, r *http.Request
 		}
 
 		// Генерируем id_token
-		data["id_token"], err = oID.genIdToken(provider, clientInterface, "", code.Scopes, user, tokenSet.Id_token_timeout)
+		data["id_token"], err = oID.genIdToken(provider, clientInterface, code.Nonce, code.Scopes, user, tokenSet.Id_token_timeout)
 		if err != nil {
 			oID.error(Error{Err: "server_error", Desc: err.Error()}, tokenRequest.redirect_uri, "", w, r)
 			return
