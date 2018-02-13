@@ -7,4 +7,5 @@ type Code struct {
 	Subject      string
 	ExpireAt     int64
 	Scopes       []string
+	Nonce	     string
 }
