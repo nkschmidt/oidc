@@ -940,10 +940,18 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 		if el == "openid" || el == "offline_access" {
 			continue
 		}
+		
+		if el == "profile" {
+			result[""]
+			continue
+		}
 
 		for _, scope := range client.Scopes {
 			if scope.Name == el {
-				result[el] = user.Get(scope.Name, scope.Fields)
+				data := user.Get(scope.Name, scope.Fields)
+				if data != nil {
+					result[el] = data
+				}			
 				continue
 			}
 		}
