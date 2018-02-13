@@ -806,7 +806,7 @@ func (oID *OpenID) Authorize(provider string, w http.ResponseWriter, r *http.Req
 		w.Write(authRequest.getForm())
 		return
 	} else {
-		path := authRequest.getPath()
+		path, _ := urlEncode(authRequest.getPath())
 		http.Redirect(w, r, path, 302)
 		return
 	}
