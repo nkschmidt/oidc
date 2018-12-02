@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -13,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 //todo Promt=none - session_state
@@ -125,7 +126,7 @@ func (oID *OpenID) genIdToken(tenant string, clientInterface ClientInterface, no
 				data := user.Get(scope.Name, scope.Fields)
 				if data != nil {
 					claim[el] = data
-				}	
+				}
 				continue
 			}
 		}
@@ -405,31 +406,31 @@ func (oID *OpenID) setSession(tenant string, w http.ResponseWriter, claim *BaseC
 	session_name := "session_" + claim.Sub
 
 	cookie := &http.Cookie{
-		session_name,
-		token_string,
-		u.Path,
-		u.Host,
-		expireAt,
-		expireAt.Format(time.UnixDate),
-		int(timeout),
-		false,
-		false,
-		session_name + "=" + token_string,
-		[]string{session_name + "=" + token_string},
+		Name:       session_name,
+		Value:      token_string,
+		Path:       u.Path,
+		Domain:     u.Host,
+		Expires:    expireAt,
+		RawExpires: expireAt.Format(time.UnixDate),
+		MaxAge:     int(timeout),
+		Secure:     false,
+		HttpOnly:   false,
+		Raw:        session_name + "=" + token_string,
+		Unparsed:   []string{session_name + "=" + token_string},
 	}
 
 	state := &http.Cookie{
-		"session",
-		session_name,
-		u.Path,
-		u.Host,
-		expireAt,
-		expireAt.Format(time.UnixDate),
-		int(timeout),
-		false,
-		false,
-		"session=" + token_string,
-		[]string{"session=" + session_name},
+		Name:       "session",
+		Value:      session_name,
+		Path:       u.Path,
+		Domain:     u.Host,
+		Expires:    expireAt,
+		RawExpires: expireAt.Format(time.UnixDate),
+		MaxAge:     int(timeout),
+		Secure:     false,
+		HttpOnly:   false,
+		Raw:        "session=" + token_string,
+		Unparsed:   []string{"session=" + session_name},
 	}
 
 	salt := genCode(6)
@@ -833,7 +834,7 @@ func (oID OpenID) genAuthCode(tenant string, clientInterface ClientInterface, au
 			Subject:      user.Sub,
 			ExpireAt:     time.Now().Add(10 * time.Minute).Unix(),
 			Scopes:       authRequest.Scopes,
-			Nonce:	      authRequest.Nonce,
+			Nonce:        authRequest.Nonce,
 		}
 
 		// Ассоциируем для кода access_token
@@ -847,7 +848,7 @@ func (oID OpenID) genAuthCode(tenant string, clientInterface ClientInterface, au
 	return
 }
 
-func (oID *OpenID) genIdTokenD(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim,timeout uint64) (err error) {
+func (oID *OpenID) genIdTokenD(tenant string, clientInterface ClientInterface, authRequest *AuthRequest, user *BaseClaim, timeout uint64) (err error) {
 	if authRequest.ResponseType != AUTH_RESPONSE_TYPE_CODE && authRequest.ResponseType != AUTH_RESPONSE_TYPE_MULTI_1 {
 		authRequest._id_token, err = oID.genIdToken(tenant, clientInterface, authRequest.Nonce, authRequest.Scopes, user, timeout)
 	}
@@ -953,13 +954,13 @@ func (oID *OpenID) Userinfo(provider string, w http.ResponseWriter, r *http.Requ
 			result[el] = user.Get(el, []string{})
 			continue
 		}
-		
+
 		for _, scope := range client.Scopes {
 			if scope.Name == el {
 				data := user.Get(scope.Name, scope.Fields)
 				if data != nil {
 					result[el] = data
-				}			
+				}
 				continue
 			}
 		}
